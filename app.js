@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 var express = require('express');
 var puppeteer = require('puppeteer');
 const proxyChain = require('proxy-chain');

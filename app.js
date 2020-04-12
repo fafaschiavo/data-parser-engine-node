@@ -118,7 +118,7 @@ async function request_page(url, use_proxy, selectors){
 
 // GET home page.
 app.get('/', function(req, res, next) {
-	res.send('Hello World!');
+	res.send('Hello From Express!');
 });
 
 
@@ -141,7 +141,7 @@ app.get('/scrape/', function(req, res, next) {
 
 
 app.listen(8000, function () {
-  console.log('Example app listening on port 8000!');
+  console.log('Data parser app listening on port 8000!');
 });
 
 

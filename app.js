@@ -4,9 +4,11 @@ var puppeteer = require('puppeteer');
 const proxyChain = require('proxy-chain');
 var cors = require('cors');
 var app = express();
-
 const html_parser = require('node-html-parser');
-const cheerio = require('cheerio')
+const cheerio = require('cheerio');
+const UserAgent = require('user-agents');
+const puppeteerExtra = require('puppeteer-extra');
+const pluginStealth = require('puppeteer-extra-plugin-stealth');
 
 // Allow for global cross origin requests on all routes
 app.use(cors())
@@ -18,8 +20,10 @@ async function request_page(url, use_proxy, selectors){
 	if (use_proxy) {	
 		const proxy_url = await proxyChain.anonymizeProxy('http://lum-customer-hl_73fbaaa8-zone-static:xx8t0lz5raap@zproxy.lum-superproxy.io:22225');
 
-		console.log('Now opening browser with proxy...');
-		var browser = await puppeteer.launch({
+		console.log('Now opening stealh browser with proxy and...');
+		puppeteerExtra.use(pluginStealth());
+
+		var browser = await puppeteerExtra.launch({
 			// headless: false,
 			args: [
 				'--no-sandbox',
@@ -29,8 +33,10 @@ async function request_page(url, use_proxy, selectors){
 			]
 		});
 	}else{
-		console.log('Now opening browser...');
-		var browser = await puppeteer.launch({
+		console.log('Now opening stealh browser...');
+		puppeteerExtra.use(pluginStealth());
+
+		var browser = await puppeteerExtra.launch({
 			// headless: false,
 			args: [
 				'--no-sandbox',
@@ -43,6 +49,11 @@ async function request_page(url, use_proxy, selectors){
 	
 	var page = await browser.newPage();
 
+	// Generate random user agent
+	var user_agent = new UserAgent();
+	user_agent = user_agent.toString();
+	page.setUserAgent(user_agent);
+
 	// Clear default settings (important to apply custom window size)
 	await page._client.send('Emulation.clearDeviceMetricsOverride');
 
@@ -52,8 +63,8 @@ async function request_page(url, use_proxy, selectors){
 	console.log('Now preparing data...');
 	var page_source = await response.text();
 	
-	console.log('Now taking screenshot...');
-	await page.screenshot({path: 'example.png'});
+	// console.log('Now taking screenshot...');
+	// await page.screenshot({path: 'example.png'});
 
 	console.log('Now cherry picking the elements of interest...');
 	// matches[url_id][selector_id] = {data_type: 'json', text: JSON.stringify(text), html: JSON.stringify(outerHTML)}
@@ -143,29 +154,6 @@ app.get('/scrape/', function(req, res, next) {
 app.listen(8000, function () {
   console.log('Data parser app listening on port 8000!');
 });
-
-
-
-
-
-
-// tags = await page.evaluate(() => {
-// 	const links = []
-// 	document.querySelectorAll('.lot-container .box-link').forEach(link => links.push(link.getAttribute('href')))
-// 	return links
-// })
-// console.log('------------------')
-// console.log(tags)
-// console.log('------------------')
-
-
-
-// tags = await page.$$eval('.lot-container .box-link', links =>
-// 	links.map(link => link.getAttribute('href'))
-// )
-// console.log('------------------')
-// console.log(tags)
-// console.log('------------------')
 
 
 

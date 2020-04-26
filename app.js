@@ -9,12 +9,16 @@ const cheerio = require('cheerio');
 const UserAgent = require('user-agents');
 const puppeteerExtra = require('puppeteer-extra');
 const pluginStealth = require('puppeteer-extra-plugin-stealth');
+var uniqid = require('uniqid');
+
+// Import our models
+const { selector_set } = require(__dirname + '/models.js');
 
 // Allow for global cross origin requests on all routes
 app.use(cors())
 
 // GET Page
-async function request_page(url, use_proxy, selectors){
+async function request_page(url, use_proxy, selector_array){
 	use_proxy = use_proxy == null ? false : use_proxy
 
 	if (use_proxy) {	
@@ -63,17 +67,17 @@ async function request_page(url, use_proxy, selectors){
 	console.log('Now preparing data...');
 	var page_source = await response.text();
 	
-	// console.log('Now taking screenshot...');
-	// await page.screenshot({path: 'example.png'});
+	console.log('Now taking screenshot...');
+	await page.screenshot({path: 'example.png'});
 
 	console.log('Now cherry picking the elements of interest...');
 	// matches[url_id][selector_id] = {data_type: 'json', text: JSON.stringify(text), html: JSON.stringify(outerHTML)}
 
 	var matches = {}
-	var selector_ids = Object.keys(selectors);
+	var selector_ids = Object.keys(selector_array);
 	for (var i = selector_ids.length - 1; i >= 0; i--) {
 		var selector_id = selector_ids[i];
-		var selector = selectors[selector_id];
+		var selector = selector_array[selector_id];
 		var css_selector = selector.css_selector;
 		var attr = selector.attr;
 
@@ -115,9 +119,7 @@ async function request_page(url, use_proxy, selectors){
 	}
 
 	await browser.close();
-	
-	console.log("I'm done here!");
-	
+		
 	return {
 		status: 'success',
 		response_code: response._status,
@@ -137,13 +139,13 @@ app.get('/', function(req, res, next) {
 app.get('/scrape/', function(req, res, next) {	
 	var url = req.query.url;
 	var settings = req.query.settings;
-	var selectors = req.query.selectors;
+	var selector_array = req.query.selectors;
 
 	// Since boolean variabled are turned into string when passed via GET paramenters, let's get them back to booleans
 	settings.use_proxy = (settings.use_proxy == 'true')
 
 	// Request the page
-	request_page(url, settings.use_proxy, selectors)
+	request_page(url, settings.use_proxy, selector_array)
 	.then((puppeteer_response) =>{
 			res.json(puppeteer_response)
 		}
@@ -151,8 +153,55 @@ app.get('/scrape/', function(req, res, next) {
 });
 
 
-app.listen(8000, function () {
-  console.log('Data parser app listening on port 8000!');
+// Save a Selector Set.
+app.get('/save-selector-set/', function(req, res, next) {
+
+	var selectors = req.query.selector_set;
+	var set_name = req.query.set_name;
+
+	var new_selector_set_hash_id = uniqid()
+
+	selector_set.create({
+			set_name: set_name,
+			selectors_json: JSON.stringify(selectors),
+			hash_id: new_selector_set_hash_id
+		}).then(new_set => {
+			let response = {status: 'success', hash_id: new_selector_set_hash_id}
+			res.json(response)
+		}
+	);
+});
+
+
+// Delete a Selector Set.
+app.get('/delete-selector-set/', function(req, res, next) {
+
+	var selector_set_hash_id = req.query.hash_id;
+
+	selector_set.destroy({
+		where: {
+			hash_id: selector_set_hash_id
+		}
+	}).then(() => {
+		res.json({ status: 'success', hash_id: selector_set_hash_id })
+	});
+
+});
+
+
+// GET Selector Sets.
+app.get('/selector-sets/', function(req, res, next) {
+	selector_set.findAll().then(selector_sets => {
+		let response = {status: 'success', selector_sets: selector_sets}
+		res.json(response)
+	});
+
+});
+
+
+
+app.listen(5000, function () {
+  console.log('Data parser app listening on port 5000!');
 });
 
 

@@ -200,8 +200,8 @@ app.get('/selector-sets/', function(req, res, next) {
 
 
 
-app.listen(5000, function () {
-  console.log('Data parser app listening on port 5000!');
+app.listen(8000, function () {
+  console.log('Data parser app listening on port 8000!');
 });
 
 

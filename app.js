@@ -17,6 +17,7 @@ const { selector_set } = require(__dirname + '/models.js');
 // Allow for global cross origin requests on all routes
 app.use(cors())
 
+// Helper function to scroll the page all teh way down before parsing
 async function autoScroll(page){
 	await page.evaluate(async () => {
 		await new Promise((resolve, reject) => {
@@ -36,8 +37,15 @@ async function autoScroll(page){
 	});
 }
 
+// Helper function to permorm a simple delay
+function delay(time) {
+	return new Promise(function(resolve) { 
+		setTimeout(resolve, time)
+	});
+}
+
 // GET Page
-async function request_page(url, selector_array, use_proxy, scroll_page){
+async function request_page(url, selector_array, use_proxy, scroll_page, wait_for_async_loading){
 	use_proxy = use_proxy == null ? false : use_proxy
 
 	if (use_proxy) {	
@@ -47,7 +55,7 @@ async function request_page(url, selector_array, use_proxy, scroll_page){
 		puppeteerExtra.use(pluginStealth());
 
 		var browser = await puppeteerExtra.launch({
-			// headless: false,
+			headless: false,
 			args: [
 				'--no-sandbox',
 				'--disable-setuid-sandbox',
@@ -60,7 +68,7 @@ async function request_page(url, selector_array, use_proxy, scroll_page){
 		puppeteerExtra.use(pluginStealth());
 
 		var browser = await puppeteerExtra.launch({
-			// headless: false,
+			headless: false,
 			args: [
 				'--no-sandbox',
 				'--disable-setuid-sandbox',
@@ -86,6 +94,11 @@ async function request_page(url, selector_array, use_proxy, scroll_page){
 	if (scroll_page) {
 		console.log('Now scrolling all the way down...');
 		await autoScroll(page);
+	}
+
+	if (wait_for_async_loading) {
+		console.log('Now waiting for async loading...');
+		await delay(5000);
 	}
 
 	console.log('Now preparing data...');
@@ -167,9 +180,11 @@ app.get('/scrape/', function(req, res, next) {
 
 	// Since boolean variabled are turned into string when passed via GET paramenters, let's get them back to booleans
 	settings.use_proxy = (settings.use_proxy == 'true')
+	settings.wait_for_async_loading = (settings.wait_for_async_loading == 'true')
+	settings.scroll_page = (settings.scroll_page == 'true')
 
 	// Request the page
-	request_page(url, selector_array, settings.use_proxy, settings.scroll_page)
+	request_page(url, selector_array, settings.use_proxy, settings.scroll_page, settings.wait_for_async_loading)
 	.then((puppeteer_response) =>{
 			res.json(puppeteer_response)
 		}
@@ -223,7 +238,7 @@ app.get('/selector-sets/', function(req, res, next) {
 });
 
 
-// Test
+// // Test
 // app.listen(5000, function () {
 //   console.log('Data parser app listening on port 5000!');
 // });

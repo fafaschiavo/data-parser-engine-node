@@ -55,7 +55,7 @@ async function request_page(url, selector_array, use_proxy, scroll_page, wait_fo
 		puppeteerExtra.use(pluginStealth());
 
 		var browser = await puppeteerExtra.launch({
-			headless: false,
+			// headless: false,
 			args: [
 				'--no-sandbox',
 				'--disable-setuid-sandbox',
@@ -68,7 +68,7 @@ async function request_page(url, selector_array, use_proxy, scroll_page, wait_fo
 		puppeteerExtra.use(pluginStealth());
 
 		var browser = await puppeteerExtra.launch({
-			headless: false,
+			// headless: false,
 			args: [
 				'--no-sandbox',
 				'--disable-setuid-sandbox',

@@ -17,8 +17,27 @@ const { selector_set } = require(__dirname + '/models.js');
 // Allow for global cross origin requests on all routes
 app.use(cors())
 
+async function autoScroll(page){
+	await page.evaluate(async () => {
+		await new Promise((resolve, reject) => {
+			var totalHeight = 0;
+			var distance = 100;
+			var timer = setInterval(() => {
+				var scrollHeight = document.body.scrollHeight;
+				window.scrollBy(0, distance);
+				totalHeight += distance;
+
+				if(totalHeight >= scrollHeight){
+					clearInterval(timer);
+					resolve();
+				}
+			}, 100);
+		});
+	});
+}
+
 // GET Page
-async function request_page(url, use_proxy, selector_array){
+async function request_page(url, selector_array, use_proxy, scroll_page){
 	use_proxy = use_proxy == null ? false : use_proxy
 
 	if (use_proxy) {	
@@ -63,6 +82,11 @@ async function request_page(url, use_proxy, selector_array){
 
 	console.log('Now requesting page: ' + url);
 	var response = await page.goto(url, {waitUntil: 'load', timeout: 0});
+
+	if (scroll_page) {
+		console.log('Now scrolling all the way down...');
+		await autoScroll(page);
+	}
 
 	console.log('Now preparing data...');
 	var page_source = await response.text();
@@ -145,7 +169,7 @@ app.get('/scrape/', function(req, res, next) {
 	settings.use_proxy = (settings.use_proxy == 'true')
 
 	// Request the page
-	request_page(url, settings.use_proxy, selector_array)
+	request_page(url, selector_array, settings.use_proxy, settings.scroll_page)
 	.then((puppeteer_response) =>{
 			res.json(puppeteer_response)
 		}
@@ -199,7 +223,12 @@ app.get('/selector-sets/', function(req, res, next) {
 });
 
 
+// Test
+// app.listen(5000, function () {
+//   console.log('Data parser app listening on port 5000!');
+// });
 
+// Live
 app.listen(8000, function () {
   console.log('Data parser app listening on port 8000!');
 });
